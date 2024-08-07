@@ -1,5 +1,5 @@
 {
-    "name": "webpress/livewire",
+    "name": "webpress/command",
     "description": "Webpress Livewire",
     "type": "library",
     "autoload": {
