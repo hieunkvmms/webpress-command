@@ -24,12 +24,14 @@ class WebpressCoreProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'webpress.core');
+        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'webpress.command');
 
         $this->publishes([
             __DIR__ . '/../../config/webpress-component.php' => config_path('webpress-component.php'),
         ], 'config');
-
+        $this->publishes([
+            __DIR__ . '/../../resources/views' => resource_path('views/vendor'),
+        ], 'views');
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Webpress\Command\Console\Commands\CreateComponentCommand::class,

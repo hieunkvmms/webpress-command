@@ -60,18 +60,13 @@ class CreateComponentCommand extends Command
         if (File::exists($componentPath)) {
             $this->error("Class component already exists: $componentPath");
         } else {
-            $componentDefaultContent = File::get(config('webpress-component.component.class_default'));
-            $componentDefaultContent = str_replace('DefaultComponent', $name, $componentDefaultContent);
-            $componentDefaultContent = str_replace('Webpress\Component\Components', $componentClassNamespace, $componentDefaultContent);
-            $componentDefaultContent = str_replace('4a008341-4356-4b29-bbf7-6892b3b9e469', Str::uuid(), $componentDefaultContent);
-            $componentDefaultContent = str_replace('webpress.component::default', $componentView, $componentDefaultContent);
-
+            $componentDefaultContent = $this->getComponentClassDefaultContent($name, $componentClassNamespace, $componentView);
             File::put($componentPath, $componentDefaultContent);
             $this->info('CLASS COMPONENT: ' . $componentPath);
         }
 
         if (File::exists($componentViewPath)) {
-            $this->error("View component already exists: $componentViewPath");  
+            $this->error("View component already exists: $componentViewPath");
         } else {
             $componentDefaultViewContent = "@livewire('$name')";
             File::put($componentViewPath, $componentDefaultViewContent);
@@ -81,11 +76,8 @@ class CreateComponentCommand extends Command
         if (File::exists($livewirePath)) {
             $this->error("Livewire component already exists: $livewirePath");
         } else {
-            $livewireDefaultContent = File::get(config('webpress-component.livewire.class_default'));
-            $livewireDefaultContent = str_replace('DefaultComponent', $name, $livewireDefaultContent);
-            $livewireDefaultContent = str_replace('Webpress\Livewire\Livewire', $livewireClassNamespace, $livewireDefaultContent);
-            $livewireDefaultContent = str_replace('webpress.livewire::default', $livewireView, $livewireDefaultContent);
-            File::put($livewirePath, $livewireDefaultContent);
+            $livewireDefaultContent = $this->getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView);
+                File::put($livewirePath, $livewireDefaultContent);
             $this->info('LIVEWIRE COMPONENT: ' . $livewirePath);
         }
 
@@ -98,5 +90,104 @@ class CreateComponentCommand extends Command
         }
         $this->info('Webpress component created successfully!');
         return Command::SUCCESS;
+    }
+
+    public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView)
+    {
+        $uuid = Str::uuid();
+        $content =  <<<'PHP'
+        <?php
+        
+        namespace {$componentClassNamespace};
+        
+        use Illuminate\View\Compilers\BladeCompiler;
+        use Webpress\Component\Contracts\ExportableWebpressComponent;
+        use Webpress\Component\Contracts\WebpressComponent;
+        use Webpress\Component\Enums\CoreGroupComponent;
+        use Webpress\Component\Traits\CanExportComponentTrait;
+        
+        class {$name} implements WebpressComponent, ExportableWebpressComponent
+        {
+            use CanExportComponentTrait;
+            public function id(): string
+            {
+                return '{$uuid}';
+            }
+        
+            public function thumbnail(): string
+            {
+                return 'block';
+            }
+        
+            public function description(): string
+            {
+                return 'block';
+            }
+        
+            public function group(): string
+            {
+                return CoreGroupComponent::BLOCK->name();
+            }
+        
+            public function name(): string
+            {
+                return '{$name}';
+            }
+        
+            public function setting(): array
+            {
+                return [];
+            }
+        
+            public function schema(): array
+            {
+                return [];
+            }
+        
+            public function view(): string
+            {
+                return '{$componentView}';
+            }
+        
+            public function render($data, $setting): string
+            {
+                return BladeCompiler::render($this->view(), ['data' => $data, 'setting' => $setting]);
+            }
+        }
+        PHP;
+        $content = str_replace('{$componentClassNamespace}', $componentClassNamespace, $content);
+        $content = str_replace('{$name}', $name, $content);
+        $content = str_replace('{$uuid}', $uuid, $content);
+        $content = str_replace('{$componentView}', $componentView, $content);
+        return $content;
+    }
+
+    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView)
+    {
+        $content = <<<'PHP'
+        <?php
+            namespace {$livewireClassNamespace};
+
+            use Livewire\Component;
+
+            class {$name} extends Component
+            {
+                public $className;
+                public $style;
+                public function mount()
+                {
+                    
+                }
+
+                public function render()
+                {
+                    return view('{$livewireView}');
+                }
+            }
+        PHP;
+        $content = str_replace('{$livewireClassNamespace}', $livewireClassNamespace, $content);
+        $content = str_replace('{$name}', $name, $content);
+        $content = str_replace('{$livewireView}', $livewireView, $content);
+        return $content;
     }
 }

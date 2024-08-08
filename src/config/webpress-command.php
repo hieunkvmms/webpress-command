@@ -14,7 +14,6 @@ return [
             'webpress' => base_path() . '/modules/framework/src/webpress/component/src/resources/views/components',
             'app' => resource_path('views/components'),
         ],
-        'class_default' => base_path() . '/modules/framework/src/webpress/component/src/app/Components/Default.php',
     ],
 
     'livewire' => [
@@ -30,6 +29,5 @@ return [
             'webpress' => __DIR__ . '../modules/livewire/src/resources/views',
             'app' => resource_path('views/livewire'),
         ],
-        'class_default' => base_path() . '/modules/livewire/src/app/Livewire/Default.php',
     ],
 ];
