@@ -1,10 +1,10 @@
 {
-    "name": "webpress/command",
-    "description": "Webpress Livewire",
+    "name": "hieunk/command",
+    "description": "Hieunk Command",
     "type": "library",
     "autoload": {
         "psr-4": {
-            "Webpress\\Command\\": "src/app"
+            "Hieunk\\Command\\": "src/app"
         }
     },
     "authors": [
@@ -22,7 +22,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Webpress\\Command\\Providers\\CommandServiceProvider"
+                "Hieunk\\Command\\Providers\\CommandServiceProvider"
             ]
         }
     }

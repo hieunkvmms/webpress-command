@@ -1,6 +1,6 @@
 <?php
 
-namespace Webpress\Command\Console\Commands;
+namespace Hieunk\Command\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;

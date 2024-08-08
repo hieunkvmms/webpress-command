@@ -1,6 +1,6 @@
 <?php
 
-namespace Webpress\Command;
+namespace Hieunk\Command;
 
 use Illuminate\Support\ServiceProvider;
 
