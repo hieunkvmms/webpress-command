@@ -29,9 +29,7 @@ class WebpressCoreProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../../config/webpress-component.php' => config_path('webpress-component.php'),
         ], 'config');
-        $this->publishes([
-            __DIR__ . '/../../resources/views' => resource_path('views/vendor'),
-        ], 'views');
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Webpress\Command\Console\Commands\CreateComponentCommand::class,
