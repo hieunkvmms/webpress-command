@@ -4,7 +4,7 @@ namespace Hieunk\Command\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-class WebpressCoreProvider extends ServiceProvider
+class CommandServiceProvider extends ServiceProvider
 {
 
     /**
