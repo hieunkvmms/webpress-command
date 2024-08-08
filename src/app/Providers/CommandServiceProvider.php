@@ -1,6 +1,6 @@
 <?php
 
-namespace Hieunk\Command;
+namespace Hieunk\Command\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
