@@ -1,6 +1,7 @@
 {
     "name": "hieunk/command",
     "description": "Hieunk Command",
+    "version": "1.0.0",
     "type": "library",
     "autoload": {
         "psr-4": {
