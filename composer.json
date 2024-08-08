@@ -14,11 +14,6 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {
-        "illuminate/console": "^9.0",
-        "illuminate/filesystem": "^9.0",
-        "illuminate/support": "^9.0"
-    },
     "extra": {
         "laravel": {
             "providers": [
