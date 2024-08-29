@@ -92,7 +92,7 @@ class CreateComponentCommand extends Command
         return Command::SUCCESS;
     }
 
-    public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView)
+    public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView, $hasColumn = false, $hasLimit = false)
     {
         $uuid = Str::uuid();
         $content =  <<<'PHP'
@@ -103,6 +103,8 @@ class CreateComponentCommand extends Command
         use Illuminate\View\Compilers\BladeCompiler;
         use Webpress\Component\Contracts\ExportableWebpressComponent;
         use Webpress\Component\Contracts\WebpressComponent;
+        use Webpress\Component\Enums\ComponentSettingKey;
+        use Webpress\Component\Enums\CoreComponentControlType;
         use Webpress\Component\Enums\CoreGroupComponent;
         use Webpress\Component\Traits\CanExportComponentTrait;
         
@@ -192,10 +194,12 @@ class CreateComponentCommand extends Command
         $content = str_replace('{$name}', $name, $content);
         $content = str_replace('{$uuid}', $uuid, $content);
         $content = str_replace('{$componentView}', $componentView, $content);
+        $content = str_replace('{$hasColumn}', $hasColumn ? $this->getComponentSettingColumn() : '', $content);
+        $content = str_replace('{$hasLimit}', $hasLimit ? $this->getComponentSettingLimit() : '', $content);
         return $content;
     }
 
-    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView)
+    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $hasColumn = false, $hasLimit = false)
     {
         $content = <<<'PHP'
         <?php
@@ -207,6 +211,9 @@ class CreateComponentCommand extends Command
             {
                 public $className;
                 public $style = 'style-1';
+                public $headingTag = 'h2';
+                {$hasColumn}
+                {$hasLimit}
                 public $componentId;
                 
                 public function mount()
@@ -223,6 +230,88 @@ class CreateComponentCommand extends Command
         $content = str_replace('{$livewireClassNamespace}', $livewireClassNamespace, $content);
         $content = str_replace('{$name}', $name, $content);
         $content = str_replace('{$livewireView}', $livewireView, $content);
+        $content = str_replace('{$hasColumn}', $hasColumn ? $this->getLivewireAttributeColumn() : '', $content);
+        $content = str_replace('{$hasLimit}', $hasLimit ? $this->getLivewireAttributeLimit() : '', $content);
         return $content;
+    }
+
+    public function getComponentSettingColumn()
+    {
+        return <<<'PHP'
+        [
+            'key' => ComponentSettingKey::XS_COLUMN->name(),
+            'label' => 'core.component.setting.xs_column.label',
+            'placeholder' => 'core.component.setting.xs_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        [
+            'key' => ComponentSettingKey::SM_COLUMN->name(),
+            'label' => 'core.component.setting.sm_column.label',
+            'placeholder' => 'core.component.setting.sm_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        [
+            'key' => ComponentSettingKey::MD_COLUMN->name(),
+            'label' => 'core.component.setting.md_column.label',
+            'placeholder' => 'core.component.setting.md_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        [
+            'key' => ComponentSettingKey::LG_COLUMN->name(),
+            'label' => 'core.component.setting.lg_column.label',
+            'placeholder' => 'core.component.setting.lg_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        [
+            'key' => ComponentSettingKey::XL_COLUMN->name(),
+            'label' => 'core.component.setting.xl_column.label',
+            'placeholder' => 'core.component.setting.xl_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        [
+            'key' => ComponentSettingKey::XXL_COLUMN->name(),
+            'label' => 'core.component.setting.xxl_column.label',
+            'placeholder' => 'core.component.setting.xxl_column.placeholder',
+            'default' => 1,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        PHP;
+    }
+
+    public function getComponentSettingLimit()
+    {
+        return <<<'PHP'
+        [
+            'key' => ComponentSettingKey::LIMIT->name(),
+            'label' => 'core.component.setting.limit.label',
+            'placeholder' => 'core.component.setting.limit.placeholder',
+            'default' => 8,
+            'control' => CoreComponentControlType::NUMBER->name(),
+        ],
+        PHP;
+    }
+
+    public function getLivewireAttributeColumn()
+    {
+        return <<<'PHP'
+        public $xsColumn = 1;
+        public $smColumn = 1;
+        public $mdColumn = 1;
+        public $lgColumn = 1;
+        public $xlColumn = 1;
+        public $xxlColumn = 1;
+        PHP;
+    }
+    
+    public function getLivewireAttributeLimit()
+    {
+        return <<<'PHP'
+        public $limit = 8;
+        PHP;
     }
 }
