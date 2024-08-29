@@ -136,12 +136,45 @@ class CreateComponentCommand extends Command
         
             public function setting(): array
             {
-                return [];
+                return [
+                    [
+                        'key' => ComponentSettingKey::CLASS_NAME->name(),
+                        'label' => 'core.component.setting.class_name.label',
+                        'placeholder' => 'core.component.setting.class_name.placeholder',
+                        'default' => '',
+                        'control' => CoreComponentControlType::TEXT->name(),
+                    ],
+                    [
+                        'key' => ComponentSettingKey::HEADING_TAG->name(),
+                        'label' => 'core.component.setting.heading_tag.label',
+                        'placeholder' => 'core.component.setting.heading_tag.placeholder',
+                        'default' => 'h3',
+                        'control' => CoreComponentControlType::SELECT->name(),
+                        'options' => [
+                            ...app('webpress.component')->getHeadingTagAsControlOption(),
+                        ],
+                    ],
+                    {$hasColumn}
+                    {$hasLimit}
+                ];
             }
         
             public function schema(): array
             {
-                return [];
+                return [
+                    [
+                        'key' => 'style',
+                        'label' => 'Kiểu',
+                        'placeholder' => 'Chọn kiểu',
+                        'control' => CoreComponentControlType::SELECT->name(),
+                        'options' => [
+                            [
+                                'label' => 'Kiểu 1',
+                                'value' => 'style-1'
+                            ],
+                        ],
+                    ],
+                ];
             }
         
             public function view(): string
@@ -173,10 +206,12 @@ class CreateComponentCommand extends Command
             class {$name} extends Component
             {
                 public $className;
-                public $style;
+                public $style = 'style-1';
+                public $componentId;
+                
                 public function mount()
                 {
-                    
+                    $this->componentId = '{$livewireView}' . $this->__id;
                 }
 
                 public function render()
