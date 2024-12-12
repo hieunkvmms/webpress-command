@@ -68,7 +68,7 @@ class CreateComponentCommand extends Command
         if (File::exists($componentViewPath)) {
             $this->error("View component already exists: $componentViewPath");
         } else {
-            $componentDefaultViewContent = "@livewire('$name')";
+            $componentDefaultViewContent = "@livewire('$viewName')";
             File::put($componentViewPath, $componentDefaultViewContent);
             $this->info('VIEW COMPONENT: ' . $componentViewPath);
         }
@@ -76,7 +76,7 @@ class CreateComponentCommand extends Command
         if (File::exists($livewirePath)) {
             $this->error("Livewire component already exists: $livewirePath");
         } else {
-            $livewireDefaultContent = $this->getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView);
+            $livewireDefaultContent = $this->getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $viewName);
                 File::put($livewirePath, $livewireDefaultContent);
             $this->info('LIVEWIRE COMPONENT: ' . $livewirePath);
         }
@@ -84,12 +84,33 @@ class CreateComponentCommand extends Command
         if (File::exists($livewireViewPath)) {
             $this->error("Livewire view already exists: $livewireViewPath");
         } else {
-            $livewireDefaultViewContent = "<section>$name</section>";
+            $livewireDefaultViewContent = $this->getValueBladeDefaultContent($viewName);
             File::put($livewireViewPath, $livewireDefaultViewContent);
             $this->info('LIVEWIRE VIEW: ' . $livewireViewPath);
         }
         $this->info('Webpress component created successfully!');
         return Command::SUCCESS;
+    }
+
+    public function getValueBladeDefaultContent($viewName)
+    {
+        $content =  <<<'PHP'
+            <div class="{$viewName}" id={{ $componentId }}>
+                <style>
+                
+                </style>
+                <div class="{$viewName}__wrapper">
+                
+                </div>
+                @script
+                    <script>
+
+                    </script>
+                @endscript
+            </div>
+        PHP;
+        $content = str_replace('{$viewName}', $viewName, $content);
+        return $content;
     }
 
     public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView, $hasColumn = false, $hasLimit = false)
@@ -199,7 +220,7 @@ class CreateComponentCommand extends Command
         return $content;
     }
 
-    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $hasColumn = false, $hasLimit = false)
+    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $viewName, $hasColumn = false, $hasLimit = false)
     {
         $content = <<<'PHP'
         <?php
@@ -218,7 +239,7 @@ class CreateComponentCommand extends Command
                 
                 public function mount()
                 {
-                    $this->componentId = '{$livewireView}' . $this->__id;
+                    $this->componentId = '{$viewName}' . $this->__id;
                 }
 
                 public function render()
