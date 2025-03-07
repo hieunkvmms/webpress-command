@@ -36,27 +36,17 @@ class CreateComponentCommand extends Command
     {
         $this->info('Creating a new Webpress component...');
         $type = $this->option('type');
-        $name = $this->argument('name');
+        $name = $this->argument('name') . config('webpress-component.component.subfix_name.' . $type);
         $viewName = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
-        if ($type === 'webpress') {
-            $componentClassNamespace = config('webpress-component.component.class_namespace.webpress');
-            $componentPath = config('webpress-component.component.class_path.webpress') . '\\' . $name . '.php';
-            $componentViewPath = config('webpress-component.component.view_path.webpress') . '\\' . $viewName . '.blade.php';
-            $componentView = "webpress.component::components." . $viewName;
-            $livewireClassNamespace = config('webpress-component.livewire.class_namespace.webpress');
-            $livewirePath = config('webpress-component.livewire.class_path.webpress') . '\\' . $name . '.php';
-            $livewireViewPath = config('webpress-component.livewire.view_path.webpress') . '\\' . $viewName . '.blade.php';
-            $livewireView = "webpress.livewire::" . $viewName;
-        } else {
-            $componentClassNamespace = config('webpress-component.component.class_namespace.app');
-            $componentPath = config('webpress-component.component.class_path.app') . '\\' . $name . '.php';
-            $componentViewPath = config('webpress-component.component.view_path.app') . '\\' . $viewName . '.blade.php';
-            $componentView = "components." . $viewName;
-            $livewireClassNamespace = config('webpress-component.livewire.class_namespace.app');
-            $livewirePath = config('webpress-component.livewire.class_path.app') . '\\' . $name . '.php';
-            $livewireViewPath = config('webpress-component.livewire.view_path.app') . '\\' . $viewName . '.blade.php';
-            $livewireView = "livewire." . $viewName;
-        }
+
+        $componentClassNamespace = config('webpress-component.component.class_namespace.' . $type);
+        $componentPath = config('webpress-component.component.class_path.' . $type) . '\\' . $name . '.php';
+        $componentViewPath = config('webpress-component.component.view_path.' . $type) . '\\' . $viewName . '.blade.php';
+        $componentView = config('webpress-component.component.view_prefix.' . $type) . $viewName;
+        $livewireClassNamespace = config('webpress-component.livewire.class_namespace.' . $type);
+        $livewirePath = config('webpress-component.livewire.class_path.' . $type) . '\\' . $name . '.php';
+        $livewireViewPath = config('webpress-component.livewire.view_path.' . $type) . '\\' . $viewName . '.blade.php';
+        $livewireView = config('webpress-component.livewire.view_prefix.' . $type) . $viewName;
         if (File::exists($componentPath)) {
             $this->error("Class component already exists: $componentPath");
         } else {
@@ -77,7 +67,7 @@ class CreateComponentCommand extends Command
             $this->error("Livewire component already exists: $livewirePath");
         } else {
             $livewireDefaultContent = $this->getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $viewName);
-                File::put($livewirePath, $livewireDefaultContent);
+            File::put($livewirePath, $livewireDefaultContent);
             $this->info('LIVEWIRE COMPONENT: ' . $livewirePath);
         }
 
@@ -107,6 +97,7 @@ class CreateComponentCommand extends Command
                 </script>
             </div>
         PHP;
+
         $content = str_replace('{$viewName}', $viewName, $content);
         return $content;
     }
@@ -116,7 +107,10 @@ class CreateComponentCommand extends Command
             @php
             $className = app('webpress.component.setting')->getClassName($setting, '');
             $style = app('webpress.component')->getValueComponentByKey($data, 'style', 'style-1');
-            echo '@livewire(\'$viewName\', [' 
+            echo '@livewire(\'{$viewName}\', [
+                "className" => "' . $className . '",
+                "style" => "' . $style . '",
+            ])'; 
             @endphp
         PHP;
         $content = str_replace('{$viewName}', $viewName, $content);
@@ -328,7 +322,7 @@ class CreateComponentCommand extends Command
         public $xxlColumn = 1;
         PHP;
     }
-    
+
     public function getLivewireAttributeLimit()
     {
         return <<<'PHP'
