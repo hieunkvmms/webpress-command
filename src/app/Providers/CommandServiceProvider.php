@@ -33,6 +33,7 @@ class CommandServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Hieunk\Command\Console\Commands\CreateComponentCommand::class,
+                \Hieunk\Command\Console\Commands\DuplicateComponentCommand::class,
             ]);
         }
     }

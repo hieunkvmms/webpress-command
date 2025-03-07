@@ -68,7 +68,7 @@ class CreateComponentCommand extends Command
         if (File::exists($componentViewPath)) {
             $this->error("View component already exists: $componentViewPath");
         } else {
-            $componentDefaultViewContent = "@livewire('$viewName')";
+            $componentDefaultViewContent = $this->getValueComponentBladeDefaultContent($viewName);
             File::put($componentViewPath, $componentDefaultViewContent);
             $this->info('VIEW COMPONENT: ' . $componentViewPath);
         }
@@ -95,24 +95,33 @@ class CreateComponentCommand extends Command
     public function getValueBladeDefaultContent($viewName)
     {
         $content =  <<<'PHP'
-            <div class="{$viewName}" id={{ $componentId }}>
+            <div class="{$viewName}" id="{{ $componentId }}">
                 <style>
                 
                 </style>
                 <div class="{$viewName}__wrapper">
                 
                 </div>
-                @script
-                    <script>
+                <script>
 
-                    </script>
-                @endscript
+                </script>
             </div>
         PHP;
         $content = str_replace('{$viewName}', $viewName, $content);
         return $content;
     }
-
+    public function getValueComponentBladeDefaultContent($viewName)
+    {
+        $content =  <<<'PHP'
+            @php
+            $className = app('webpress.component.setting')->getClassName($setting, '');
+            $style = app('webpress.component')->getValueComponentByKey($data, 'style', 'style-1');
+            echo '@livewire(\'$viewName\', [' 
+            @endphp
+        PHP;
+        $content = str_replace('{$viewName}', $viewName, $content);
+        return $content;
+    }
     public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView, $hasColumn = false, $hasLimit = false)
     {
         $uuid = Str::uuid();
@@ -166,16 +175,6 @@ class CreateComponentCommand extends Command
                         'placeholder' => 'core.component.setting.class_name.placeholder',
                         'default' => '',
                         'control' => CoreComponentControlType::TEXT->name(),
-                    ],
-                    [
-                        'key' => ComponentSettingKey::HEADING_TAG->name(),
-                        'label' => 'core.component.setting.heading_tag.label',
-                        'placeholder' => 'core.component.setting.heading_tag.placeholder',
-                        'default' => 'h3',
-                        'control' => CoreComponentControlType::SELECT->name(),
-                        'options' => [
-                            ...app('webpress.component')->getHeadingTagAsControlOption(),
-                        ],
                     ],
                     {$hasColumn}
                     {$hasLimit}
@@ -239,7 +238,7 @@ class CreateComponentCommand extends Command
                 
                 public function mount()
                 {
-                    $this->componentId = '{$viewName}' . $this->__id;
+                    $this->componentId = '{$viewName}-' . $this->__id;
                 }
 
                 public function render()
@@ -251,6 +250,7 @@ class CreateComponentCommand extends Command
         $content = str_replace('{$livewireClassNamespace}', $livewireClassNamespace, $content);
         $content = str_replace('{$name}', $name, $content);
         $content = str_replace('{$livewireView}', $livewireView, $content);
+        $content = str_replace('{$viewName}', $viewName, $content);
         $content = str_replace('{$hasColumn}', $hasColumn ? $this->getLivewireAttributeColumn() : '', $content);
         $content = str_replace('{$hasLimit}', $hasLimit ? $this->getLivewireAttributeLimit() : '', $content);
         return $content;

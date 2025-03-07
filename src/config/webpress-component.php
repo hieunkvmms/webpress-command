@@ -14,6 +14,14 @@ return [
             'webpress' => base_path() . '/modules/framework/src/webpress/component/src/resources/views/components',
             'app' => resource_path('views/components'),
         ],
+        'view_prefix' => [
+            'webpress' => 'webpress.component::components.',
+            'app' => 'components.',
+        ],
+        'subfix_name' => [
+            'webpress' => '',
+            'app' => 'Abc',
+        ]
     ],
 
     'livewire' => [
@@ -22,12 +30,20 @@ return [
             'app' => 'App\\Livewire',
         ],
         'class_path' => [
-            'webpress' => base_path() . '/modules/framework/src/webpress/livewire/src/app/Http/Livewire',
+            'webpress' => base_path() . '/modules/livewire/src/app/Livewire',
             'app' => app_path('Livewire'),
         ],
         'view_path' =>[
-            'webpress' => __DIR__ . '../modules/livewire/src/resources/views',
+            'webpress' =>  base_path('modules/livewire/src/resources/views'),
             'app' => resource_path('views/livewire'),
         ],
+        'view_prefix' => [
+            'webpress' => 'webpress.livewire::',
+            'app' => 'livewire.',
+        ],
+        'subfix_name' => [
+            'webpress' => '',
+            'app' => 'Abc',
+        ]
     ],
 ];
