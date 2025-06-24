@@ -10,6 +10,7 @@ Package này cung cấp các lệnh để:
 
 ```bash
 composer require hieunk/command --dev
+```
 ⚠️ Yêu cầu:
 
 Laravel >= 9.x
