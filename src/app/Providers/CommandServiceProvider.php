@@ -24,8 +24,6 @@ class CommandServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'webpress.command');
-
         $this->publishes([
             __DIR__ . '/../../config/webpress-component.php' => config_path('webpress-component.php'),
         ], 'config');

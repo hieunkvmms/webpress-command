@@ -36,17 +36,17 @@ class CreateComponentCommand extends Command
     {
         $this->info('Creating a new Webpress component...');
         $type = $this->option('type');
-        $name = $this->argument('name') . config('webpress-component.component.subfix_name.' . $type);
+        $name = $this->argument('name') . config('webpress-component.component.subfix_name.' . $type, '');
         $viewName = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
 
-        $componentClassNamespace = config('webpress-component.component.class_namespace.' . $type);
-        $componentPath = config('webpress-component.component.class_path.' . $type) . '\\' . $name . '.php';
-        $componentViewPath = config('webpress-component.component.view_path.' . $type) . '\\' . $viewName . '.blade.php';
-        $componentView = config('webpress-component.component.view_prefix.' . $type) . $viewName;
-        $livewireClassNamespace = config('webpress-component.livewire.class_namespace.' . $type);
-        $livewirePath = config('webpress-component.livewire.class_path.' . $type) . '\\' . $name . '.php';
-        $livewireViewPath = config('webpress-component.livewire.view_path.' . $type) . '\\' . $viewName . '.blade.php';
-        $livewireView = config('webpress-component.livewire.view_prefix.' . $type) . $viewName;
+        $componentClassNamespace = config('webpress-component.component.class_namespace.' . $type, '');
+        $componentPath = config('webpress-component.component.class_path.' . $type, '') . '\\' . $name . '.php';
+        $componentViewPath = config('webpress-component.component.view_path.' . $type, '') . '\\' . $viewName . '.blade.php';
+        $componentView = config('webpress-component.component.view_prefix.' . $type, '') . $viewName;
+        $livewireClassNamespace = config('webpress-component.livewire.class_namespace.' . $type, '');
+        $livewirePath = config('webpress-component.livewire.class_path.' . $type, '') . '\\' . $name . '.php';
+        $livewireViewPath = config('webpress-component.livewire.view_path.' . $type, '') . '\\' . $viewName . '.blade.php';
+        $livewireView = config('webpress-component.livewire.view_prefix.' . $type, '') . $viewName;
         if (File::exists($componentPath)) {
             $this->error("Class component already exists: $componentPath");
         } else {
