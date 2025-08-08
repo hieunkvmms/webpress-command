@@ -8,325 +8,482 @@ use Illuminate\Support\Str;
 
 class CreateComponentCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'make:webpress-component {name} {--type=webpress}';
+    protected $signature = 'make:webpress-component {name} {--type=app} {--column} {--limit}';
+    protected $description = 'Create a new Webpress component with configurable paths and namespaces';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new Webpress component';
+    protected $config;
+    protected $type;
+    protected $baseName;
+    protected $componentName;
+    protected $livewireName;
+    protected $componentViewName;
+    protected $livewireViewName;
 
     public function __construct()
     {
         parent::__construct();
     }
 
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
     public function handle()
     {
         $this->info('Creating a new Webpress component...');
-        $type = $this->option('type');
-        $name = $this->argument('name') . config('webpress-component.component.subfix_name.' . $type, '');
-        $viewName = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
 
-        $componentClassNamespace = config('webpress-component.component.class_namespace.' . $type, '');
-        $componentPath = config('webpress-component.component.class_path.' . $type, '') . '\\' . $name . '.php';
-        $componentViewPath = config('webpress-component.component.view_path.' . $type, '') . '\\' . $viewName . '.blade.php';
-        $componentView = config('webpress-component.component.view_prefix.' . $type, '') . $viewName;
-        $livewireClassNamespace = config('webpress-component.livewire.class_namespace.' . $type, '');
-        $livewirePath = config('webpress-component.livewire.class_path.' . $type, '') . '\\' . $name . '.php';
-        $livewireViewPath = config('webpress-component.livewire.view_path.' . $type, '') . '\\' . $viewName . '.blade.php';
-        $livewireView = config('webpress-component.livewire.view_prefix.' . $type, '') . $viewName;
-        if (File::exists($componentPath)) {
-            $this->error("Class component already exists: $componentPath");
-        } else {
-            $componentDefaultContent = $this->getComponentClassDefaultContent($name, $componentClassNamespace, $componentView);
-            File::put($componentPath, $componentDefaultContent);
-            $this->info('CLASS COMPONENT: ' . $componentPath);
+        $this->initializeProperties();
+
+        if (!$this->validateConfiguration()) {
+            return Command::FAILURE;
         }
 
-        if (File::exists($componentViewPath)) {
-            $this->error("View component already exists: $componentViewPath");
-        } else {
-            $componentDefaultViewContent = $this->getValueComponentBladeDefaultContent($viewName);
-            File::put($componentViewPath, $componentDefaultViewContent);
-            $this->info('VIEW COMPONENT: ' . $componentViewPath);
-        }
+        $this->createComponentFiles();
 
-        if (File::exists($livewirePath)) {
-            $this->error("Livewire component already exists: $livewirePath");
-        } else {
-            $livewireDefaultContent = $this->getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $viewName);
-            File::put($livewirePath, $livewireDefaultContent);
-            $this->info('LIVEWIRE COMPONENT: ' . $livewirePath);
-        }
-
-        if (File::exists($livewireViewPath)) {
-            $this->error("Livewire view already exists: $livewireViewPath");
-        } else {
-            $livewireDefaultViewContent = $this->getValueBladeDefaultContent($viewName);
-            File::put($livewireViewPath, $livewireDefaultViewContent);
-            $this->info('LIVEWIRE VIEW: ' . $livewireViewPath);
-        }
         $this->info('Webpress component created successfully!');
         return Command::SUCCESS;
     }
 
-    public function getValueBladeDefaultContent($viewName)
+    protected function initializeProperties()
     {
-        $content =  <<<'PHP'
-            <div class="{$viewName}" id="{{ $componentId }}">
-                <style>
-                
-                </style>
-                <div class="{$viewName}__wrapper">
-                
-                </div>
-                <script>
+        $this->config = config('webpress-component');
+        $this->type = $this->option('type');
+        $this->baseName = $this->argument('name');
 
-                </script>
-            </div>
-        PHP;
+        // Tạo tên class với suffix
+        $this->componentName = $this->baseName . $this->getConfigValue('component.subfix_name');
+        $this->livewireName = $this->baseName . $this->getConfigValue('livewire.subfix_name');
 
-        $content = str_replace('{$viewName}', $viewName, $content);
-        return $content;
+        // Tạo tên view với suffix
+        $this->componentViewName = $this->generateViewName($this->componentName);
+        $this->livewireViewName = $this->generateViewName($this->livewireName);
     }
-    public function getValueComponentBladeDefaultContent($viewName)
+
+    protected function validateConfiguration()
     {
-        $content =  <<<'PHP'
-            @php
-            $className = app('webpress.component.setting')->getClassName($setting, '');
-            $style = app('webpress.component')->getValueComponentByKey($data, 'style', 'style-1');
-            echo '@livewire(\'{$viewName}\', [
-                "className" => "' . $className . '",
-                "style" => "' . $style . '",
-            ])'; 
-            @endphp
-        PHP;
-        $content = str_replace('{$viewName}', $viewName, $content);
-        return $content;
+        if (!isset($this->config['component']['class_namespace'][$this->type])) {
+            $this->error("Configuration for type '{$this->type}' not found. Available types: " .
+                implode(', ', array_keys($this->config['component']['class_namespace'])));
+            return false;
+        }
+        return true;
     }
-    public function getComponentClassDefaultContent($name, $componentClassNamespace, $componentView, $hasColumn = false, $hasLimit = false)
+
+    protected function createComponentFiles()
     {
-        $uuid = Str::uuid();
-        $content =  <<<'PHP'
-        <?php
-        
-        namespace {$componentClassNamespace};
-        
-        use Illuminate\View\Compilers\BladeCompiler;
-        use Webpress\Component\Contracts\ExportableWebpressComponent;
-        use Webpress\Component\Contracts\WebpressComponent;
-        use Webpress\Component\Enums\ComponentSettingKey;
-        use Webpress\Component\Enums\CoreComponentControlType;
-        use Webpress\Component\Enums\CoreGroupComponent;
-        use Webpress\Component\Traits\CanExportComponentTrait;
-        
-        class {$name} implements WebpressComponent, ExportableWebpressComponent
-        {
-            use CanExportComponentTrait;
-            public function id(): string
-            {
-                return '{$uuid}';
-            }
-        
-            public function thumbnail(): string
-            {
-                return 'block';
-            }
-        
-            public function description(): string
-            {
-                return 'block';
-            }
-        
-            public function group(): string
-            {
-                return CoreGroupComponent::BLOCK->name();
-            }
-        
-            public function name(): string
-            {
-                return '{$name}';
-            }
-        
-            public function setting(): array
-            {
-                return [
-                    [
-                        'key' => ComponentSettingKey::CLASS_NAME->name(),
-                        'label' => 'core.component.setting.class_name.label',
-                        'placeholder' => 'core.component.setting.class_name.placeholder',
-                        'default' => '',
-                        'control' => CoreComponentControlType::TEXT->name(),
-                    ],
-                    {$hasColumn}
-                    {$hasLimit}
-                ];
-            }
-        
-            public function schema(): array
-            {
-                return [
-                    [
-                        'key' => 'style',
-                        'label' => 'Kiểu',
-                        'placeholder' => 'Chọn kiểu',
-                        'control' => CoreComponentControlType::SELECT->name(),
-                        'options' => [
-                            [
-                                'label' => 'Kiểu 1',
-                                'value' => 'style-1'
-                            ],
-                        ],
-                    ],
-                ];
-            }
-        
-            public function view(): string
-            {
-                return '{$componentView}';
-            }
-        
-            public function render($data, $setting): string
-            {
-                return BladeCompiler::render($this->view(), ['data' => $data, 'setting' => $setting]);
+        $this->createComponentClass();
+        $this->createComponentView();
+        $this->createLivewireClass();
+        $this->createLivewireView();
+    }
+
+    protected function createComponentClass()
+    {
+        $path = $this->getFullPath('component.class_path') . DIRECTORY_SEPARATOR . $this->componentName . '.php';
+
+        if (File::exists($path)) {
+            $this->error("Component class already exists: $path");
+            return;
+        }
+
+        $this->ensureDirectoryExists(dirname($path));
+
+        $content = $this->getComponentClassContent();
+        File::put($path, $content);
+        $this->info('COMPONENT CLASS: ' . $path);
+    }
+
+    protected function createComponentView()
+    {
+        $path = $this->getFullPath('component.view_path') . DIRECTORY_SEPARATOR . $this->componentViewName . '.blade.php';
+
+        if (File::exists($path)) {
+            $this->error("Component view already exists: $path");
+            return;
+        }
+
+        $this->ensureDirectoryExists(dirname($path));
+
+        $content = $this->getComponentViewContent();
+        File::put($path, $content);
+        $this->info('COMPONENT VIEW: ' . $path);
+    }
+
+    protected function createLivewireClass()
+    {
+        $path = $this->getFullPath('livewire.class_path') . DIRECTORY_SEPARATOR . $this->livewireName . '.php';
+
+        if (File::exists($path)) {
+            $this->error("Livewire class already exists: $path");
+            return;
+        }
+
+        $this->ensureDirectoryExists(dirname($path));
+
+        $content = $this->getLivewireClassContent();
+        File::put($path, $content);
+        $this->info('LIVEWIRE CLASS: ' . $path);
+    }
+
+    protected function createLivewireView()
+    {
+        $path = $this->getFullPath('livewire.view_path') . DIRECTORY_SEPARATOR . $this->livewireViewName . '.blade.php';
+
+        if (File::exists($path)) {
+            $this->error("Livewire view already exists: $path");
+            return;
+        }
+
+        $this->ensureDirectoryExists(dirname($path));
+
+        $content = $this->getLivewireViewContent();
+        File::put($path, $content);
+        $this->info('LIVEWIRE VIEW: ' . $path);
+    }
+
+    protected function getConfigValue($key)
+    {
+        $keys = explode('.', $key);
+        $value = $this->config;
+
+        foreach ($keys as $k) {
+            if (isset($value[$k][$this->type])) {
+                $value = $value[$k][$this->type];
+            } elseif (isset($value[$k])) {
+                $value = $value[$k];
+            } else {
+                return $this->getDefaultConfigValue($key);
             }
         }
-        PHP;
-        $content = str_replace('{$componentClassNamespace}', $componentClassNamespace, $content);
-        $content = str_replace('{$name}', $name, $content);
-        $content = str_replace('{$uuid}', $uuid, $content);
-        $content = str_replace('{$componentView}', $componentView, $content);
-        $content = str_replace('{$hasColumn}', $hasColumn ? $this->getComponentSettingColumn() : '', $content);
-        $content = str_replace('{$hasLimit}', $hasLimit ? $this->getComponentSettingLimit() : '', $content);
-        return $content;
+
+        return $value;
     }
 
-    public function getLivewireClassDefaultContent($name, $livewireClassNamespace, $livewireView, $viewName, $hasColumn = false, $hasLimit = false)
+    protected function getDefaultConfigValue($key)
+    {
+        $keys = explode('.', $key);
+        $value = $this->config['default_settings'] ?? [];
+
+        foreach ($keys as $k) {
+            if (isset($value[$k])) {
+                $value = $value[$k];
+            } else {
+                return '';
+            }
+        }
+
+        return $value;
+    }
+
+    protected function getFullPath($configKey)
+    {
+        $path = $this->getConfigValue($configKey);
+
+        // Chuẩn hóa đường dẫn - thay thế / và \ thành DIRECTORY_SEPARATOR
+        $path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+
+        // Nếu path không phải absolute path, thì convert từ base_path
+        if (!$this->isAbsolutePath($path)) {
+            $path = base_path($path);
+        }
+
+        return $path;
+    }
+
+    protected function isAbsolutePath($path)
+    {
+        // Windows: C:\ hoặc C:/
+        // Unix/Linux: /
+        return (DIRECTORY_SEPARATOR === '\\' && preg_match('/^[a-zA-Z]:/', $path)) ||
+            (DIRECTORY_SEPARATOR === '/' && strpos($path, '/') === 0);
+    }
+
+    protected function ensureDirectoryExists($directory)
+    {
+        if (!File::exists($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+    }
+
+    protected function generateViewName($name)
+    {
+        return strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $name));
+    }
+
+    protected function getComponentClassContent()
+    {
+        $namespace = $this->getConfigValue('component.class_namespace');
+        $componentView = $this->getConfigValue('component.view_prefix') . $this->componentViewName;
+        $uuid = Str::uuid();
+        $hasColumn = $this->option('column');
+        $hasLimit = $this->option('limit');
+
+        $content = <<<'PHP'
+<?php
+
+namespace {$namespace};
+
+use Illuminate\View\Compilers\BladeCompiler;
+use Webpress\Component\Contracts\ExportableWebpressComponent;
+use Webpress\Component\Contracts\WebpressComponent;
+use Webpress\Component\Enums\ComponentSettingKey;
+use Webpress\Component\Enums\CoreComponentControlType;
+use Webpress\Component\Enums\CoreGroupComponent;
+use Webpress\Component\Traits\CanExportComponentTrait;
+
+class {$className} implements WebpressComponent, ExportableWebpressComponent
+{
+    use CanExportComponentTrait;
+    
+    public function id(): string
+    {
+        return '{$uuid}';
+    }
+
+    public function thumbnail(): string
+    {
+        return 'block';
+    }
+
+    public function description(): string
+    {
+        return 'block';
+    }
+
+    public function group(): string
+    {
+        return CoreGroupComponent::BLOCK->name();
+    }
+
+    public function name(): string
+    {
+        return '{$className}';
+    }
+
+    public function setting(): array
+    {
+        return [
+            [
+                'key' => ComponentSettingKey::CLASS_NAME->name(),
+                'label' => 'core.component.setting.class_name.label',
+                'placeholder' => 'core.component.setting.class_name.placeholder',
+                'default' => '',
+                'control' => CoreComponentControlType::TEXT->name(),
+            ],
+            {$columnSettings}
+            {$limitSettings}
+        ];
+    }
+
+    public function schema(): array
+    {
+        return [
+            [
+                'key' => 'style',
+                'label' => 'Kiểu',
+                'placeholder' => 'Chọn kiểu',
+                'control' => CoreComponentControlType::SELECT->name(),
+                'options' => [
+                    [
+                        'label' => 'Kiểu 1',
+                        'value' => 'style-1'
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function view(): string
+    {
+        return '{$componentView}';
+    }
+
+    public function render($data, $setting): string
+    {
+        return BladeCompiler::render($this->view(), ['data' => $data, 'setting' => $setting]);
+    }
+}
+PHP;
+
+        return str_replace([
+            '{$namespace}',
+            '{$className}',
+            '{$uuid}',
+            '{$componentView}',
+            '{$columnSettings}',
+            '{$limitSettings}'
+        ], [
+            $namespace,
+            $this->componentName,
+            $uuid,
+            $componentView,
+            $hasColumn ? $this->getComponentSettingColumn() : '',
+            $hasLimit ? $this->getComponentSettingLimit() : ''
+        ], $content);
+    }
+
+    protected function getComponentViewContent()
     {
         $content = <<<'PHP'
-        <?php
-            namespace {$livewireClassNamespace};
+@php
+$className = app('webpress.component.setting')->getClassName($setting, '');
+$style = app('webpress.component')->getValueComponentByKey($data, 'style', 'style-1');
+echo '@livewire(\'{$livewireViewName}\', [
+    "className" => "' . $className . '",
+    "style" => "' . $style . '",
+])'; 
+@endphp
+PHP;
 
-            use Livewire\Component;
-
-            class {$name} extends Component
-            {
-                public $className;
-                public $style = 'style-1';
-                public $headingTag = 'h2';
-                {$hasColumn}
-                {$hasLimit}
-                public $componentId;
-                
-                public function mount()
-                {
-                    $this->componentId = '{$viewName}-' . $this->__id;
-                }
-
-                public function render()
-                {
-                    return view('{$livewireView}');
-                }
-            }
-        PHP;
-        $content = str_replace('{$livewireClassNamespace}', $livewireClassNamespace, $content);
-        $content = str_replace('{$name}', $name, $content);
-        $content = str_replace('{$livewireView}', $livewireView, $content);
-        $content = str_replace('{$viewName}', $viewName, $content);
-        $content = str_replace('{$hasColumn}', $hasColumn ? $this->getLivewireAttributeColumn() : '', $content);
-        $content = str_replace('{$hasLimit}', $hasLimit ? $this->getLivewireAttributeLimit() : '', $content);
-        return $content;
+        return str_replace('{$livewireViewName}', $this->livewireViewName, $content);
     }
 
-    public function getComponentSettingColumn()
+    protected function getLivewireClassContent()
     {
-        return <<<'PHP'
-        [
-            'key' => ComponentSettingKey::XS_COLUMN->name(),
-            'label' => 'core.component.setting.xs_column.label',
-            'placeholder' => 'core.component.setting.xs_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        [
-            'key' => ComponentSettingKey::SM_COLUMN->name(),
-            'label' => 'core.component.setting.sm_column.label',
-            'placeholder' => 'core.component.setting.sm_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        [
-            'key' => ComponentSettingKey::MD_COLUMN->name(),
-            'label' => 'core.component.setting.md_column.label',
-            'placeholder' => 'core.component.setting.md_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        [
-            'key' => ComponentSettingKey::LG_COLUMN->name(),
-            'label' => 'core.component.setting.lg_column.label',
-            'placeholder' => 'core.component.setting.lg_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        [
-            'key' => ComponentSettingKey::XL_COLUMN->name(),
-            'label' => 'core.component.setting.xl_column.label',
-            'placeholder' => 'core.component.setting.xl_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        [
-            'key' => ComponentSettingKey::XXL_COLUMN->name(),
-            'label' => 'core.component.setting.xxl_column.label',
-            'placeholder' => 'core.component.setting.xxl_column.placeholder',
-            'default' => 1,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        PHP;
+        $namespace = $this->getConfigValue('livewire.class_namespace');
+        $livewireView = $this->getConfigValue('livewire.view_prefix') . $this->livewireViewName;
+        $hasColumn = $this->option('column');
+        $hasLimit = $this->option('limit');
+
+        $content = <<<'PHP'
+<?php
+
+namespace {$namespace};
+
+use Livewire\Component;
+
+class {$className} extends Component
+{
+    public $className;
+    public $style = 'style-1';
+    public $headingTag = 'h2';
+    {$columnAttributes}
+    {$limitAttributes}
+    public $componentId;
+    
+    public function mount()
+    {
+        $this->componentId = '{$baseViewName}-' . $this->__id;
     }
 
-    public function getComponentSettingLimit()
+    public function render()
     {
-        return <<<'PHP'
-        [
-            'key' => ComponentSettingKey::LIMIT->name(),
-            'label' => 'core.component.setting.limit.label',
-            'placeholder' => 'core.component.setting.limit.placeholder',
-            'default' => 8,
-            'control' => CoreComponentControlType::NUMBER->name(),
-        ],
-        PHP;
+        return view('{$livewireView}');
+    }
+}
+PHP;
+
+        return str_replace([
+            '{$namespace}',
+            '{$className}',
+            '{$baseViewName}',
+            '{$livewireView}',
+            '{$columnAttributes}',
+            '{$limitAttributes}'
+        ], [
+            $namespace,
+            $this->livewireName,
+            $this->generateViewName($this->baseName), // Sử dụng base name cho componentId
+            $livewireView,
+            $hasColumn ? $this->getLivewireAttributeColumn() : '',
+            $hasLimit ? $this->getLivewireAttributeLimit() : ''
+        ], $content);
     }
 
-    public function getLivewireAttributeColumn()
+    protected function getLivewireViewContent()
     {
-        return <<<'PHP'
-        public $xsColumn = 1;
-        public $smColumn = 1;
-        public $mdColumn = 1;
-        public $lgColumn = 1;
-        public $xlColumn = 1;
-        public $xxlColumn = 1;
-        PHP;
+        $baseViewName = $this->generateViewName($this->baseName);
+
+        $content = <<<'PHP'
+<div class="{$viewName}" id="{{ $componentId }}">
+    <style>
+    
+    </style>
+    <div class="{$viewName}__wrapper">
+    
+    </div>
+    <script>
+
+    </script>
+</div>
+PHP;
+
+        return str_replace('{$viewName}', $baseViewName, $content);
     }
 
-    public function getLivewireAttributeLimit()
+    protected function getComponentSettingColumn()
     {
         return <<<'PHP'
-        public $limit = 8;
-        PHP;
+            [
+                'key' => ComponentSettingKey::XS_COLUMN->name(),
+                'label' => 'core.component.setting.xs_column.label',
+                'placeholder' => 'core.component.setting.xs_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+            [
+                'key' => ComponentSettingKey::SM_COLUMN->name(),
+                'label' => 'core.component.setting.sm_column.label',
+                'placeholder' => 'core.component.setting.sm_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+            [
+                'key' => ComponentSettingKey::MD_COLUMN->name(),
+                'label' => 'core.component.setting.md_column.label',
+                'placeholder' => 'core.component.setting.md_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+            [
+                'key' => ComponentSettingKey::LG_COLUMN->name(),
+                'label' => 'core.component.setting.lg_column.label',
+                'placeholder' => 'core.component.setting.lg_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+            [
+                'key' => ComponentSettingKey::XL_COLUMN->name(),
+                'label' => 'core.component.setting.xl_column.label',
+                'placeholder' => 'core.component.setting.xl_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+            [
+                'key' => ComponentSettingKey::XXL_COLUMN->name(),
+                'label' => 'core.component.setting.xxl_column.label',
+                'placeholder' => 'core.component.setting.xxl_column.placeholder',
+                'default' => 1,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+PHP;
+    }
+
+    protected function getComponentSettingLimit()
+    {
+        return <<<'PHP'
+            [
+                'key' => ComponentSettingKey::LIMIT->name(),
+                'label' => 'core.component.setting.limit.label',
+                'placeholder' => 'core.component.setting.limit.placeholder',
+                'default' => 8,
+                'control' => CoreComponentControlType::NUMBER->name(),
+            ],
+PHP;
+    }
+
+    protected function getLivewireAttributeColumn()
+    {
+        return <<<'PHP'
+    public $xsColumn = 1;
+    public $smColumn = 1;
+    public $mdColumn = 1;
+    public $lgColumn = 1;
+    public $xlColumn = 1;
+    public $xxlColumn = 1;
+PHP;
+    }
+
+    protected function getLivewireAttributeLimit()
+    {
+        return <<<'PHP'
+    public $limit = 8;
+PHP;
     }
 }
