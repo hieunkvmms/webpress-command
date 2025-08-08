@@ -7,9 +7,9 @@ Package này cung cấp các lệnh để:
 - Duplicate một Component có sẵn trong core để tùy biến.
 
 ## Cách sử dụng:
-php artisan make:webpress-component TestComponent --type=theme
-php artisan make:webpress-component TestComponent --type=app
-php artisan make:webpress-component TestComponent --type=webpress
+- php artisan make:webpress-component TestComponent --type=theme
+- php artisan make:webpress-component TestComponent --type=app
+- php artisan make:webpress-component TestComponent --type=webpress
 
 ## 🛠️ Cài đặt
 
